@@ -42,13 +42,13 @@ class PDF(FPDF):
         self.chapter_title("Assessment Time")
         self.chapter_body(str(data['Assessment Time'][0]))
 
+        self.chapter_title("Recruitment Feedback")
+        self.chapter_body(data['Recruitment Feedback'][0])
+
         # Employee ratings
         self.chapter_title("Performance Ratings")
         for criterion, rating in data['Performance Ratings'][0].items():
             self.chapter_body(f"{criterion}: {rating}/10")
-
-        self.chapter_title("Recruitment Feedback")
-        self.chapter_body(data['Recruitment Feedback'][0])
 
         # Employee Names Involved
         self.chapter_title("Involved Staff")
@@ -75,12 +75,13 @@ def init_main():
         '[Learn more about Robert Half Staffing Services](https://www.roberthalf.com/)'
     )
 
-    # Customer experience inputs
+    # Input Fields for the Score Card
+    st.subheader("Overall Service Assessment")
     overall_rating = st.slider("Rate the overall service (1-5)", 1, 5)
     feedback_summary = st.text_area("Provide a summary of your feedback")
     assessment_date = st.date_input("Select the date of assessment")
     assessment_time = st.time_input("Select the time of assessment")
-    recruitment_feedback = st.text_area("Feedback on recruitment process")
+    recruitment_feedback = st.text_area("Provide feedback on the recruitment process")
 
     # Section for adding employee names
     st.subheader("Enter Employee Names Involved")
@@ -122,18 +123,28 @@ def init_main():
         rating = st.slider(f"{criterion}", 0, 10, 5)
         performance_ratings[criterion] = rating
 
-    # Data dictionary
+    # Normalize data for consistent lengths
+    max_length = max(len(st.session_state.employee_names), 1)  # Prevent empty lists
     data = {
+        "Overall Rating": [overall_rating] * max_length,
+        "Feedback Summary": [feedback_summary] * max_length,
+        "Assessment Date": [assessment_date] * max_length,
+        "Assessment Time": [assessment_time] * max_length,
+        "Recruitment Feedback": [recruitment_feedback] * max_length,
+        "Employee Names": st.session_state.employee_names or ["N/A"],  # Default to "N/A" if empty
+        "Performance Ratings": [performance_ratings] * max_length,
+    }
+
+    # Create DataFrame
+    df = pd.DataFrame({
         "Overall Rating": [overall_rating],
         "Feedback Summary": [feedback_summary],
         "Assessment Date": [assessment_date],
         "Assessment Time": [assessment_time],
-        "Performance Ratings": [performance_ratings],
         "Recruitment Feedback": [recruitment_feedback],
-        "Employee Names": st.session_state.employee_names
-    }
-
-    df = pd.DataFrame(data)
+        "Employee Names": [", ".join(st.session_state.employee_names)],
+        "Performance Ratings": [performance_ratings]
+    })
 
     # CSV download
     csv = convert_df_to_csv(df)
